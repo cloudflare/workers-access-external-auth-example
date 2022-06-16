@@ -1,10 +1,3 @@
-// CREATE OR UPDATE ALL THE PARTS HERE AT THE TOP
-
-/**
- * The subdomain of cloudflareaccess.com that your account belongs to
- */
-const TEAM_DOMAIN = 'YOURTEAMDOMAIN.cloudflareaccess.com'
-
 /**
  * Where your business logic should go
  * @param {*} claims

@@ -10,3 +10,6 @@ kv_namespaces = [
     # namespace: 
   { binding = "KV", id = "<fill in>", preview_id = "<fill in>" },
 ]
+
+[vars]
+TEAM_DOMAIN="<update>.cloudflareaccess.com"
