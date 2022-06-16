@@ -1,0 +1,12 @@
+name = "external-auth-rule-eval"
+type = "javascript"
+
+account_id = "<fill in>"
+zone_id = "<fill in>"
+workers_dev = true
+compatibility_date = "2022-06-10"
+
+kv_namespaces = [
+    # namespace: 
+  { binding = "KV", id = "<fill in>", preview_id = "<fill in>" },
+]
