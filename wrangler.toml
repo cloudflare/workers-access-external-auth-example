@@ -13,3 +13,4 @@ kv_namespaces = [
 
 [vars]
 TEAM_DOMAIN="<update>.cloudflareaccess.com"
+DEBUG=false

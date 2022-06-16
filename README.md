@@ -13,4 +13,4 @@ This is a worker that you should allow you to quickly setup an external evalutat
 
 ## Debugging
 
-Run `wrangler tail -f pretty` to try and get some basic debug logs for your worker
+Run `wrangler tail -f pretty` to get basic debug logs for your worker. If you set `DEBUG=true` in wrangler.toml it will also output the incoming and outgoing JWTs. You can plug these into JWT.io to see what Access is sending you and what you are returning to Access.

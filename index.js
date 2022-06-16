@@ -220,6 +220,9 @@ function parseJWT(token) {
  * @returns {object} Returns the payload if valid, or throws an error if not
  */
 async function verifyToken(token) {
+  if (DEBUG) {
+    console.log('incoming JWT', token)
+  }
   const jwt = parseJWT(token)
   const key = await fetchAccessPublicKey(jwt.header.kid)
 
@@ -277,6 +280,9 @@ async function handleExternalEvaluationRequest(event) {
     }
 
     const jwt = await signJWT(result)
+    if (DEBUG) {
+      console.log('outgoing JWT', jwt)
+    }
     return new Response(JSON.stringify({ token: jwt }), {
       headers: { 'content-type': 'application/json' },
     })
