@@ -1,6 +1,6 @@
 # Access External Auth Rule Example Worker
 
-This is a worker that you should allow you to quickly setup an external evalutation rule in Cloudflare Access.
+This is a worker that you should allow you to quickly setup an external evalutation rule in Cloudflare Access. Additional information about this feature can be found in the [Cloudflare Developer Docs](https://developers.cloudflare.com/cloudflare-one/policies/access/external-evaluation/).
 
 ## Setup
 
