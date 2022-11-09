@@ -4,7 +4,11 @@
  * @returns boolean
  */
 async function externalEvaluation(claims) {
-  return claims.identity.email === 'bob@example.com'
+  const currentHour = new Date(new Date().toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+  })).getHours()
+
+  return currentHour >= 8 && currentHour <= 16
 }
 
 // EVERYTHING PAST THIS SHOULD NOT NEED TO CHANGE UNLESS YOU WANT TO
