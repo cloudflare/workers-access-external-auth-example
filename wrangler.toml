@@ -1,10 +1,8 @@
 name = "external-auth-rule-eval"
-type = "javascript"
-
 account_id = "<fill in>"
-zone_id = "<fill in>"
 workers_dev = true
 compatibility_date = "2022-06-10"
+main = "index.js"
 
 kv_namespaces = [
     # namespace: 
