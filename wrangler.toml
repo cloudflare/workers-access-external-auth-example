@@ -5,7 +5,7 @@ main = "index.js"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "<fill-in>"
+id = "<update>"
 
 [vars]
 TEAM_DOMAIN="<update>.cloudflareaccess.com"
