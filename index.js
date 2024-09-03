@@ -12,7 +12,6 @@ async function externalEvaluation(claims) {
 
 export default {
 	async fetch(request, env, ctx) {
-		// return new Response('Hello World From My First Worker!');
     if (request.url.endsWith('keys')) {
       return handleKeysRequest(env)
     } else {
