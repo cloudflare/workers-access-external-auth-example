@@ -1,13 +1,11 @@
 name = "external-auth-rule-eval"
-account_id = "<fill in>"
 workers_dev = true
-compatibility_date = "2022-06-10"
+compatibility_date = "2024-08-06"
 main = "index.js"
 
-kv_namespaces = [
-    # namespace: 
-  { binding = "KV", id = "<fill in>", preview_id = "<fill in>" },
-]
+[[kv_namespaces]]
+binding = "KV"
+id = "<update>"
 
 [vars]
 TEAM_DOMAIN="<update>.cloudflareaccess.com"

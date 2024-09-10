@@ -10,13 +10,15 @@ async function externalEvaluation(claims) {
 // EVERYTHING PAST THIS SHOULD NOT NEED TO CHANGE UNLESS YOU WANT TO
 // ==================================================================
 
-addEventListener('fetch', event => {
-  if (event.request.url.endsWith('keys')) {
-    event.respondWith(handleKeysRequest(event))
-  } else {
-    event.respondWith(handleExternalEvaluationRequest(event))
-  }
-})
+export default {
+	async fetch(request, env, ctx) {
+    if (request.url.endsWith('keys')) {
+      return handleKeysRequest(env)
+    } else {
+      return handleExternalEvaluationRequest(env, request)
+    }
+  },
+}
 
 // the key in KV that holds the generated signing keys
 const KV_SIGNING_KEY = 'external_auth_keys'
@@ -72,11 +74,12 @@ function asciiToUint8Array(str) {
 
 /**
  * Helper to get the Access public keys from the certs endpoint
+ * @param {*} env
  * @param {*} kid - The key id that signed the token
  * @returns
  */
-async function fetchAccessPublicKey(kid) {
-  const resp = await fetch(`https://${TEAM_DOMAIN}/cdn-cgi/access/certs`)
+async function fetchAccessPublicKey(env, kid) {
+  const resp = await fetch(`https://${env.TEAM_DOMAIN}/cdn-cgi/access/certs`)
   const keys = await resp.json()
   const jwk = keys.keys.filter(key => key.kid == kid)[0]
   const key = await crypto.subtle.importKey(
@@ -94,9 +97,10 @@ async function fetchAccessPublicKey(kid) {
 
 /**
  * Generate a key pair and stores them into Workers KV for future use
+ * @param {*} env
  * @returns
  */
-async function generateKeys() {
+async function generateKeys(env) {
   console.log('generating a new signing key pair')
   try {
     const keypair = await crypto.subtle.generateKey(
@@ -112,7 +116,7 @@ async function generateKeys() {
     const publicKey = await crypto.subtle.exportKey('jwk', keypair.publicKey)
     const privateKey = await crypto.subtle.exportKey('jwk', keypair.privateKey)
     const kid = await generateKID(JSON.stringify(publicKey))
-    await KV.put(
+    await env.KV.put(
       KV_SIGNING_KEY,
       JSON.stringify({ public: publicKey, private: privateKey, kid: kid }),
     )
@@ -125,10 +129,11 @@ async function generateKeys() {
 
 /**
  * Load the signing key from KV
+ * @param {*} env
  * @returns
  */
-async function loadSigningKey() {
-  const keyset = await KV.get(KV_SIGNING_KEY, 'json')
+async function loadSigningKey(env) {
+  const keyset = await env.KV.get(KV_SIGNING_KEY, 'json')
   if (keyset) {
     const signingKey = await crypto.subtle.importKey(
       'jwk',
@@ -149,27 +154,29 @@ async function loadSigningKey() {
 
 /**
  * Get the public key in JWK format
+ * @param {*} env
  * @returns
  */
-async function loadPublicKey() {
+async function loadPublicKey(env) {
   // if the JWK values are already in KV then just return that
-  const key = await KV.get(KV_SIGNING_KEY, 'json')
+  const key = await env.KV.get(KV_SIGNING_KEY, 'json')
   if (key) {
     return { kid: key.kid, ...key.public }
   }
 
   // otherwise generate keys and store the Keyset in KV
-  const { kid, publicKey } = await generateKeys()
+  const { kid, publicKey } = await generateKeys(env)
   return { kid, ...publicKey }
 }
 
 /**
  * Turn a payload into a JWT
+ * @param {*} env
  * @param {*} payload
  * @returns
  */
-async function signJWT(payload) {
-  const { kid, privateKey } = await loadSigningKey()
+async function signJWT(env, payload) {
+  const { kid, privateKey } = await loadSigningKey(env)
   const header = {
     alg: 'RS256',
     kid: kid,
@@ -216,15 +223,16 @@ function parseJWT(token) {
 /**
  * Validates the provided token using the Access public key set
  *
+ * @param env
  * @param token - the token to be validated
  * @returns {object} Returns the payload if valid, or throws an error if not
  */
-async function verifyToken(token) {
-  if (DEBUG) {
+async function verifyToken(env, token) {
+  if (env.DEBUG) {
     console.log('incoming JWT', token)
   }
   const jwt = parseJWT(token)
-  const key = await fetchAccessPublicKey(jwt.header.kid)
+  const key = await fetchAccessPublicKey(env, jwt.header.kid)
 
   const verified = await crypto.subtle.verify(
     'RSASSA-PKCS1-v1_5',
@@ -249,11 +257,11 @@ async function verifyToken(token) {
 
 /**
  * Top level handler for public jwks endpoint
- * @param {*} event
+ * @param {*} env
  * @returns
  */
-async function handleKeysRequest(event) {
-  const keys = await loadPublicKey()
+async function handleKeysRequest(env) {
+  const keys = await loadPublicKey(env)
   return new Response(JSON.stringify({ keys: [keys] }), {
     status: 200,
     headers: { 'content-type': 'application/json' },
@@ -262,15 +270,16 @@ async function handleKeysRequest(event) {
 
 /**
  * Top level handler for external evaluation requests
- * @param {*} event
+ * @param {*} env
+ * @param {*} request
  * @returns
  */
-async function handleExternalEvaluationRequest(event) {
+async function handleExternalEvaluationRequest(env, request) {
   const now = Math.round(Date.now() / 1000)
   let result = { success: false, iat: now, exp: now + 60 }
   try {
-    const body = await event.request.json()
-    const claims = await verifyToken(body.token)
+    const body = await request.json()
+    const claims = await verifyToken(env, body.token)
 
     if (claims) {
       result.nonce = claims.nonce
@@ -279,8 +288,8 @@ async function handleExternalEvaluationRequest(event) {
       }
     }
 
-    const jwt = await signJWT(result)
-    if (DEBUG) {
+    const jwt = await signJWT(env, result)
+    if (env.DEBUG) {
       console.log('outgoing JWT', jwt)
     }
     return new Response(JSON.stringify({ token: jwt }), {
