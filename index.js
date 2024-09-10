@@ -15,7 +15,7 @@ export default {
     if (request.url.endsWith('keys')) {
       return handleKeysRequest(env)
     } else {
-      return handleExternalEvaluationRequest(request, env)
+      return handleExternalEvaluationRequest(env, request)
     }
   },
 }
@@ -74,11 +74,11 @@ function asciiToUint8Array(str) {
 
 /**
  * Helper to get the Access public keys from the certs endpoint
- * @param {*} kid - The key id that signed the token
  * @param {*} env
+ * @param {*} kid - The key id that signed the token
  * @returns
  */
-async function fetchAccessPublicKey(kid, env) {
+async function fetchAccessPublicKey(env, kid) {
   const resp = await fetch(`https://${env.TEAM_DOMAIN}/cdn-cgi/access/certs`)
   const keys = await resp.json()
   const jwk = keys.keys.filter(key => key.kid == kid)[0]
@@ -171,11 +171,11 @@ async function loadPublicKey(env) {
 
 /**
  * Turn a payload into a JWT
- * @param {*} payload
  * @param {*} env
+ * @param {*} payload
  * @returns
  */
-async function signJWT(payload, env) {
+async function signJWT(env, payload) {
   const { kid, privateKey } = await loadSigningKey(env)
   const header = {
     alg: 'RS256',
@@ -223,16 +223,16 @@ function parseJWT(token) {
 /**
  * Validates the provided token using the Access public key set
  *
- * @param token - the token to be validated
  * @param env
+ * @param token - the token to be validated
  * @returns {object} Returns the payload if valid, or throws an error if not
  */
-async function verifyToken(token, env) {
+async function verifyToken(env, token) {
   if (env.DEBUG) {
     console.log('incoming JWT', token)
   }
   const jwt = parseJWT(token)
-  const key = await fetchAccessPublicKey(jwt.header.kid, env)
+  const key = await fetchAccessPublicKey(env, jwt.header.kid)
 
   const verified = await crypto.subtle.verify(
     'RSASSA-PKCS1-v1_5',
@@ -270,16 +270,16 @@ async function handleKeysRequest(env) {
 
 /**
  * Top level handler for external evaluation requests
- * @param {*} request
  * @param {*} env
+ * @param {*} request
  * @returns
  */
-async function handleExternalEvaluationRequest(request, env) {
+async function handleExternalEvaluationRequest(env, request) {
   const now = Math.round(Date.now() / 1000)
   let result = { success: false, iat: now, exp: now + 60 }
   try {
     const body = await request.json()
-    const claims = await verifyToken(body.token, env)
+    const claims = await verifyToken(env, body.token)
 
     if (claims) {
       result.nonce = claims.nonce
@@ -288,7 +288,7 @@ async function handleExternalEvaluationRequest(request, env) {
       }
     }
 
-    const jwt = await signJWT(result, env)
+    const jwt = await signJWT(env, result)
     if (env.DEBUG) {
       console.log('outgoing JWT', jwt)
     }
